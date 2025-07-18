@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(git clone:*)",
+      "Bash(cp:*)",
+      "Bash(rm:*)",
+      "Bash(marimo:*)",
+      "Bash(uv run marimo:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(lsof:*)",
+      "Bash(uv add:*)",
+      "Bash(ls:*)",
+      "Bash(touch:*)",
+      "Bash(python3:*)",
+      "Bash(uv run:*)",
+      "Bash(# Read current content\ncp /Users/sam/notebook-scratch/front_modeling.py /tmp/temp_notebook.py\n\n# Modify the temp file\nsed ''s/1:03 PM - AUTO-SAVE TEST (no manual save)/1:04 PM - ATOMIC REPLACE TEST/'' /tmp/temp_notebook.py > /tmp/modified_notebook.py\n\n# Atomic replace - this should trigger FileModifiedEvent\nmv /tmp/modified_notebook.py /Users/sam/notebook-scratch/front_modeling.py\n\necho \"\"Performed atomic file replacement\"\")",
+      "Bash(curl:*)",
+      "Bash(timeout 10 uv run marimo export:*)",
+      "Bash(mv:*)",
+      "Bash(uv sync:*)",
+      "Bash(python:*)",
+      "Bash(pkill:*)",
+      "Bash(just help:*)",
+      "Bash(just kill:*)",
+      "Bash(just loop)",
+      "Bash(just set:*)",
+      "Bash(just current:*)",
+      "Bash(just export)",
+      "Bash(just verify)",
+      "Bash(just verify-pro:*)"
+    ],
+    "deny": []
+  }
+}
