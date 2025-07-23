@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.14.11"
+__generated_with = "0.14.10"
 app = marimo.App(width="medium")
 
 
@@ -8,18 +8,18 @@ app = marimo.App(width="medium")
 def _(mo):
     mo.md(
         r"""
-        ## Data Dependencies Setup
-        
-        **Purpose**: Import all required libraries for data analysis and visualization
-        
-        **Components**:
-        - `duckdb`: In-memory SQL database for fast data processing
-        - `plotly`: Interactive visualization library
-        - `pandas`: Data manipulation and analysis
-        - `pathlib`: File system path handling
-        
-        This cell establishes the foundation for our logistics compliance analysis.
-        """
+    ## Data Dependencies Setup
+
+    **Purpose**: Import all required libraries for data analysis and visualization
+
+    **Components**:
+    - `duckdb`: In-memory SQL database for fast data processing
+    - `plotly`: Interactive visualization library
+    - `pandas`: Data manipulation and analysis
+    - `pathlib`: File system path handling
+
+    This cell establishes the foundation for our logistics compliance analysis.
+    """
     )
     return
 
@@ -30,7 +30,7 @@ def _():
     import plotly.express as px
     import pandas as pd
     from pathlib import Path
-    return Path, mo, pd, px
+    return Path, mo, px
 
 
 @app.cell
@@ -52,70 +52,70 @@ def _(mo):
 def _(mo):
     mo.md(
         r"""
-        ## Database Connection Setup
-        
-        **Purpose**: Connect to existing RCRA DuckDB database with processed EPA data
-        
-        **Why This Approach**:
-        - Use persistent database instead of loading CSVs each time
-        - Pre-processed and optimized data structure for faster queries
-        - Consistent data access across all campaign notebooks
-        
-        **Database Location**: `~/db/rcrainfo.duckdb` contains:
-        - RCRA handlers and facilities
-        - Violation and enforcement data  
-        - Waste manifests and tracking
-        - Optimized indexes for logistics analysis
-        
-        **Business Value**: Direct access to cleaned, structured EPA data for immediate Ryder compliance analysis.
-        """
+    ## Database Connection Setup
+
+    **Purpose**: Connect to existing RCRA DuckDB database with processed EPA data
+
+    **Why This Approach**:
+    - Use persistent database instead of loading CSVs each time
+    - Pre-processed and optimized data structure for faster queries
+    - Consistent data access across all campaign notebooks
+
+    **Database Location**: `~/db/rcrainfo.duckdb` contains:
+    - RCRA handlers and facilities
+    - Violation and enforcement data  
+    - Waste manifests and tracking
+    - Optimized indexes for logistics analysis
+
+    **Business Value**: Direct access to cleaned, structured EPA data for immediate Ryder compliance analysis.
+    """
     )
     return
 
 
 @app.cell
-def _(Path, mo, pd, px):
+def _(Path):
     import duckdb
-    
+
     # Connect to existing RCRA database
     RCRA_DB_PATH = Path("~/db/rcrainfo.duckdb").expanduser()
     rcra_con = duckdb.connect(database=RCRA_DB_PATH, read_only=True)
-    
+
     print(f"Connected to: {RCRA_DB_PATH}")
-    
+
     handler_count = rcra_con.execute('SELECT COUNT(*) FROM HD_HANDLER').fetchone()[0]
     print(f"Database loaded with {handler_count} handlers")
-    
-    return RCRA_DB_PATH, duckdb, rcra_con
+
+    return (rcra_con,)
 
 
 @app.cell
 def _(mo):
     mo.md(
         r"""
-        ## Ryder Facility Discovery
-        
-        **Purpose**: Identify all Ryder-related facilities in EPA databases
-        
-        **Search Strategy**:
-        - Pattern matching on facility names using LIKE operations
-        - Multiple search terms to capture naming variations
-        - Comprehensive facility data extraction for location and status
-        
-        **Key Fields**:
-        - `HANDLER_NAME`: Official facility name in EPA records
-        - `LOCATION_*`: Physical address for site mapping
-        - `HANDLER_TYPE`: Regulatory classification (generator, transporter, etc.)
-        - `GENERATOR_STATUS`: Waste generation volume category
-        
-        **Business Application**: This forms the baseline inventory of Ryder facilities under EPA oversight, critical for compliance gap analysis.
-        """
+    ## Ryder Facility Discovery
+
+    **Purpose**: Identify all Ryder-related facilities in EPA databases
+
+    **Search Strategy**:
+    - Pattern matching on facility names using LIKE operations
+    - Multiple search terms to capture naming variations
+    - Comprehensive facility data extraction for location and status
+
+    **Key Fields**:
+    - `HANDLER_NAME`: Official facility name in EPA records
+    - `LOCATION_*`: Physical address for site mapping
+    - `HANDLER_TYPE`: Regulatory classification (generator, transporter, etc.)
+    - `GENERATOR_STATUS`: Waste generation volume category
+
+    **Business Application**: This forms the baseline inventory of Ryder facilities under EPA oversight, critical for compliance gap analysis.
+    """
     )
     return
 
 
 @app.cell
-def _(mo, rcra_con):
+def _(HD_HANDLER, mo, rcra_con):
     # Initial Ryder facility identification using marimo SQL
     ryder_facilities = mo.sql(
         """
@@ -151,27 +151,27 @@ def _(mo, rcra_con):
         ryder_facilities,
         label="Ryder Facilities in RCRA Database"
     )
-    return ryder_facilities,
+    return (ryder_facilities,)
 
 
 @app.cell
 def _(mo):
     mo.md(
         r"""
-        ## California Market Focus Analysis
-        
-        **Strategic Rationale**: 
-        - California represents largest regulatory burden for logistics companies
-        - State-level environmental requirements exceed federal minimums
-        - High-value market justifies focused compliance investment
-        
-        **Methodology**:
-        - Filter national Ryder data to California operations
-        - Establish baseline metrics for expansion analysis
-        - Demonstrate market penetration and opportunity size
-        
-        **Sales Context**: California analysis provides proof-of-concept for national rollout, showing immediate ROI potential in highest-stakes market.
-        """
+    ## California Market Focus Analysis
+
+    **Strategic Rationale**: 
+    - California represents largest regulatory burden for logistics companies
+    - State-level environmental requirements exceed federal minimums
+    - High-value market justifies focused compliance investment
+
+    **Methodology**:
+    - Filter national Ryder data to California operations
+    - Establish baseline metrics for expansion analysis
+    - Demonstrate market penetration and opportunity size
+
+    **Sales Context**: California analysis provides proof-of-concept for national rollout, showing immediate ROI potential in highest-stakes market.
+    """
     )
     return
 
@@ -198,28 +198,28 @@ def _(mo, ryder_facilities):
 def _(mo):
     mo.md(
         r"""
-        ## Industry-Wide Compliance Analysis
-        
-        **Purpose**: Benchmark Ryder against logistics industry compliance patterns
-        
-        **Competitive Intelligence Strategy**:
-        - Include major logistics competitors (FedEx, UPS) for market context
-        - Rank facilities by violation frequency to identify problem patterns
-        - Cross-reference handler types with violation rates
-        
-        **Query Logic**:
-        - LEFT JOIN preserves facilities with zero violations
-        - COUNT DISTINCT prevents duplicate violation counting
-        - ORDER BY violation_count surfaces highest-risk facilities first
-        
-        **Sales Opportunity**: Demonstrates industry-wide compliance challenges, positioning Encamp as solution for systematic risk management across logistics sector.
-        """
+    ## Industry-Wide Compliance Analysis
+
+    **Purpose**: Benchmark Ryder against logistics industry compliance patterns
+
+    **Competitive Intelligence Strategy**:
+    - Include major logistics competitors (FedEx, UPS) for market context
+    - Rank facilities by violation frequency to identify problem patterns
+    - Cross-reference handler types with violation rates
+
+    **Query Logic**:
+    - LEFT JOIN preserves facilities with zero violations
+    - COUNT DISTINCT prevents duplicate violation counting
+    - ORDER BY violation_count surfaces highest-risk facilities first
+
+    **Sales Opportunity**: Demonstrates industry-wide compliance challenges, positioning Encamp as solution for systematic risk management across logistics sector.
+    """
     )
     return
 
 
 @app.cell
-def _(mo, rcra_con):
+def _(CA_AREA_EVENT, HD_HANDLER, mo, rcra_con):
     # Waste compliance and violation analysis using marimo SQL with actual violation data
     logistics_waste_compliance = mo.sql(
         """
@@ -266,35 +266,35 @@ def _(mo, rcra_con):
         logistics_waste_compliance.head(20),
         label="Logistics Industry Waste Compliance Overview"
     )
-    return logistics_waste_compliance,
+    return (logistics_waste_compliance,)
 
 
 @app.cell
 def _(mo):
     mo.md(
         r"""
-        ## Waste Shipment Tracking Analysis
-        
-        **Purpose**: Analyze Ryder's waste transportation and disposal patterns
-        
-        **Manifest System Context**:
-        - EPA requires manifests for hazardous waste "cradle-to-grave" tracking
-        - Each manifest represents legal liability chain from generator to disposal
-        - Missing or incorrect manifests create significant regulatory exposure
-        
-        **Analysis Approach**:
-        - Track Ryder as both generator (producing waste) and transporter (moving waste)
-        - Quantify waste volumes and shipment frequencies
-        - Map disposal facility relationships and geographic patterns
-        
-        **Encamp Value Proposition**: Automated manifest tracking prevents regulatory violations and optimizes disposal cost management through better facility relationships.
-        """
+    ## Waste Shipment Tracking Analysis
+
+    **Purpose**: Analyze Ryder's waste transportation and disposal patterns
+
+    **Manifest System Context**:
+    - EPA requires manifests for hazardous waste "cradle-to-grave" tracking
+    - Each manifest represents legal liability chain from generator to disposal
+    - Missing or incorrect manifests create significant regulatory exposure
+
+    **Analysis Approach**:
+    - Track Ryder as both generator (producing waste) and transporter (moving waste)
+    - Quantify waste volumes and shipment frequencies
+    - Map disposal facility relationships and geographic patterns
+
+    **Encamp Value Proposition**: Automated manifest tracking prevents regulatory violations and optimizes disposal cost management through better facility relationships.
+    """
     )
     return
 
 
 @app.cell
-def _(mo, rcra_con):
+def _(EM_MANIFEST, mo, rcra_con):
     # Manifest analysis for waste shipment patterns using marimo SQL
     ryder_manifests = mo.sql(
         """
@@ -319,29 +319,29 @@ def _(mo, rcra_con):
         ryder_manifests,
         label="Ryder Waste Manifest Activity"
     )
-    return ryder_manifests,
+    return
 
 
 @app.cell
 def _(mo):
     mo.md(
         r"""
-        ## Geographic Risk Visualization
-        
-        **Purpose**: Map state-level compliance risk across logistics industry
-        
-        **Visualization Strategy**:
-        - Scatter plot reveals correlation between facility density and violations
-        - State labels enable quick identification of high-risk markets
-        - Interactive plotting allows drill-down analysis
-        
-        **Business Insights**:
-        - States with high facility counts but low violations indicate effective compliance
-        - High violation states represent market opportunities for Encamp services
-        - Geographic patterns suggest regulatory enforcement variations
-        
-        **Sales Application**: Identify priority states for Encamp expansion based on demonstrated compliance challenges and market size.
-        """
+    ## Geographic Risk Visualization
+
+    **Purpose**: Map state-level compliance risk across logistics industry
+
+    **Visualization Strategy**:
+    - Scatter plot reveals correlation between facility density and violations
+    - State labels enable quick identification of high-risk markets
+    - Interactive plotting allows drill-down analysis
+
+    **Business Insights**:
+    - States with high facility counts but low violations indicate effective compliance
+    - High violation states represent market opportunities for Encamp services
+    - Geographic patterns suggest regulatory enforcement variations
+
+    **Sales Application**: Identify priority states for Encamp expansion based on demonstrated compliance challenges and market size.
+    """
     )
     return
 
@@ -351,7 +351,7 @@ def _(logistics_waste_compliance, mo, px):
     # Visualization: State distribution of logistics facilities
     # Convert to pandas for visualization if needed
     df_pandas = logistics_waste_compliance.to_pandas() if hasattr(logistics_waste_compliance, 'to_pandas') else logistics_waste_compliance
-    
+
     state_counts = df_pandas.groupby('location_state').agg({
         'handler_name': 'count',
         'facility_count': 'sum'
@@ -374,28 +374,28 @@ def _(logistics_waste_compliance, mo, px):
 def _(mo):
     mo.md(
         r"""
-        ## Waste Generation Profile & Risk Assessment
-        
-        **Purpose**: Analyze compliance rates by waste generation volume categories
-        
-        **Generator Status Categories**:
-        - **Large Quantity Generators (LQG)**: >1,000 kg/month - highest regulatory burden
-        - **Small Quantity Generators (SQG)**: 100-1,000 kg/month - moderate requirements  
-        - **Conditionally Exempt Small Quantity Generators (CESQG)**: <100 kg/month - minimal requirements
-        
-        **Risk Analysis Methodology**:
-        - Calculate violation rates by generator category
-        - Identify patterns between waste volume and compliance failures
-        - Quantify facility counts for market sizing
-        
-        **Strategic Value**: Different generator categories require different Encamp service levels, enabling tiered pricing and targeted sales approaches.
-        """
+    ## Waste Generation Profile & Risk Assessment
+
+    **Purpose**: Analyze compliance rates by waste generation volume categories
+
+    **Generator Status Categories**:
+    - **Large Quantity Generators (LQG)**: >1,000 kg/month - highest regulatory burden
+    - **Small Quantity Generators (SQG)**: 100-1,000 kg/month - moderate requirements  
+    - **Conditionally Exempt Small Quantity Generators (CESQG)**: <100 kg/month - minimal requirements
+
+    **Risk Analysis Methodology**:
+    - Calculate violation rates by generator category
+    - Identify patterns between waste volume and compliance failures
+    - Quantify facility counts for market sizing
+
+    **Strategic Value**: Different generator categories require different Encamp service levels, enabling tiered pricing and targeted sales approaches.
+    """
     )
     return
 
 
 @app.cell
-def _(mo, rcra_con):
+def _(CA_AREA_EVENT, HD_HANDLER, mo, rcra_con):
     # Generator status analysis for compliance gaps using marimo SQL with actual violation rates
     generator_analysis = mo.sql(
         """
@@ -436,7 +436,7 @@ def _(mo, rcra_con):
         generator_analysis,
         label="Logistics Waste Generator Status & Compliance Rates"
     )
-    return generator_analysis,
+    return
 
 
 @app.cell
