@@ -238,7 +238,7 @@ def _(mo):
 
     **Business Unit Breakdown (Internal):**
     """)
-    return internal_epa_ids, ryder_internal_facs
+    return internal_epa_ids, ryder_internal_facs, ryder_internal_ids
 
 
 @app.cell
@@ -248,7 +248,7 @@ def _(ryder_internal_facs):
 
 
 @app.cell
-def _(internal_epa_ids, mo, rcra_con):
+def _(HD_HANDLER, internal_epa_ids, mo, rcra_con):
     # Find overlap between internal EPA IDs and RCRA database
     if internal_epa_ids:
         epa_id_list_1 = "'" + "','".join(internal_epa_ids) + "'"
@@ -287,24 +287,24 @@ def _(internal_rcra_matches):
 
 
 @app.cell
-def _(internal_epa_ids, mo, rcra_con, ryder_internal_facs, ryder_internal_ids):
+def _(HD_HANDLER, mo, rcra_con, ryder_internal_facs, ryder_internal_ids):
     # Compare internal FMS categorization with our RCRA business unit rules
-    
+
     # Get internal facilities marked as FMS
     fms_facilities = ryder_internal_facs[ryder_internal_facs['Business Unit'] == 'FMS']
-    
+
     # Get their EPA IDs
     fms_facility_ids = set(fms_facilities['Facility ID'].tolist())
     fms_epa_mapping = ryder_internal_ids[
         (ryder_internal_ids['Type'] == 'EPA') & 
         (ryder_internal_ids['Facility ID'].isin(fms_facility_ids))
     ][['Facility ID', 'Value']].rename(columns={'Value': 'handler_id'})
-    
+
     fms_epa_ids = fms_epa_mapping['handler_id'].tolist()
-    
+
     if fms_epa_ids:
         fms_epa_list = "'" + "','".join(fms_epa_ids) + "'"
-        
+
         # Get RCRA data for FMS facilities with our business unit categorization
         fms_rcra_comparison = mo.sql(f"""
             SELECT 
@@ -325,49 +325,52 @@ def _(internal_epa_ids, mo, rcra_con, ryder_internal_facs, ryder_internal_ids):
                 AND f.current_record='Y'
             ORDER BY f.handler_name
         """, engine=rcra_con)
-        
+
     mo.md(f"""
     ## FMS Categorization Validation
-    
+
     **Internal FMS Facilities Analysis:**
     - Internal facilities marked as FMS: {len(fms_facilities):,}
     - FMS facilities with EPA IDs: {len(fms_epa_ids):,}
     - Found in RCRA database: {len(fms_rcra_comparison):,}
-    
+
     **Business Unit Mapping Check:**
     Compare internal "FMS" designation with our RCRA categorization rules
     """)
-    return fms_epa_ids, fms_facilities, fms_rcra_comparison
+    return (fms_rcra_comparison,)
 
 
 @app.cell
 def _(fms_rcra_comparison):
     # Show the comparison
     fms_rcra_comparison
-
-
-@app.cell  
-def _(fms_rcra_comparison):
-    # Summary of categorization alignment
-    categorization_summary = fms_rcra_comparison['rcra_business_unit'].value_counts()
-    
-    print("RCRA Business Unit Categories for Internal FMS Facilities:")
-    print(categorization_summary)
-    
-    # Calculate alignment percentage
-    truck_rental_count = categorization_summary.get('Ryder Truck Rental', 0)
-    total_categorized = len(fms_rcra_comparison)
-    alignment_pct = (truck_rental_count / total_categorized * 100) if total_categorized > 0 else 0
-    
-    print(f"\nCategorization Alignment:")
-    print(f"- Truck Rental (expected for FMS): {truck_rental_count}/{total_categorized} ({alignment_pct:.1f}%)")
-    print(f"- Other categories: {total_categorized - truck_rental_count}/{total_categorized} ({100-alignment_pct:.1f}%)")
-    
-    return alignment_pct, categorization_summary, truck_rental_count
+    return
 
 
 @app.cell
-def _(internal_epa_ids, mo, rcra_con, ryder_facs):
+def _(fms_rcra_comparison):
+    # Summary of categorization alignment
+    categorization_summary = fms_rcra_comparison['rcra_business_unit'].value_counts()
+
+    print("RCRA Business Unit Categories for Internal FMS Facilities:")
+    print(categorization_summary)
+
+    # Calculate alignment percentage
+    truck_rental_count = categorization_summary.filter(
+        categorization_summary['rcra_business_unit'] == 'Ryder Truck Rental'
+    )['counts'].sum() if len(categorization_summary.filter(categorization_summary['rcra_business_unit'] == 'Ryder Truck Rental')) > 0 else 0
+
+    total_categorized = len(fms_rcra_comparison)
+    alignment_pct = (truck_rental_count / total_categorized * 100) if total_categorized > 0 else 0
+
+    print(f"\nCategorization Alignment:")
+    print(f"- Truck Rental (expected for FMS): {truck_rental_count}/{total_categorized} ({alignment_pct:.1f}%)")
+    print(f"- Other categories: {total_categorized - truck_rental_count}/{total_categorized} ({100-alignment_pct:.1f}%)")
+    return
+
+
+@app.cell
+def _(HD_HANDLER, internal_epa_ids, mo, rcra_con, ryder_facs):
     # Find facilities in RCRA from internal system that weren't caught by name-based query
     if internal_epa_ids:
         epa_id_list_2 = "'" + "','".join(internal_epa_ids) + "'"
@@ -425,7 +428,7 @@ def _(internal_epa_ids, mo, rcra_con, ryder_facs):
     These are Ryder facilities in our internal system that exist in RCRA 
     but weren't identified by our name/email pattern matching.
     """)
-    return gap_ids, internal_in_rcra, missed_facilities, name_based_ids
+    return (missed_facilities,)
 
 
 @app.cell
@@ -436,7 +439,7 @@ def _(missed_facilities):
 
 
 @app.cell
-def _(internal_epa_ids, mo, rcra_con):
+def _(HD_HANDLER, internal_epa_ids, mo, rcra_con):
     # Summary statistics
     if internal_epa_ids:
         epa_id_list_3 = "'" + "','".join(internal_epa_ids) + "'"
@@ -479,9 +482,9 @@ def _(internal_epa_ids, mo, rcra_con):
     - Internal system captures portion of total RCRA Ryder footprint
     - Name-based query effectiveness validated against internal data
     """
-    
+
     mo.md(coverage_summary)
-    return (coverage_stats,)
+    return
 
 
 if __name__ == "__main__":
