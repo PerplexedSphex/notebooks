@@ -691,6 +691,11 @@ recommended = [
     { name = "ruff" },
     { name = "sqlglot" },
 ]
+sql = [
+    { name = "duckdb" },
+    { name = "polars", extra = ["pyarrow"] },
+    { name = "sqlglot" },
+]
 
 [[package]]
 name = "markdown"
@@ -790,10 +795,12 @@ source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
     { name = "beautifulsoup4" },
+    { name = "duckdb" },
     { name = "google-genai" },
-    { name = "marimo", extra = ["recommended"] },
+    { name = "marimo", extra = ["recommended", "sql"] },
     { name = "pandas" },
     { name = "plotly" },
+    { name = "polars" },
     { name = "vegafusion" },
     { name = "vl-convert-python" },
 ]
@@ -802,10 +809,12 @@ dependencies = [
 requires-dist = [
     { name = "anthropic", specifier = ">=0.57.1" },
     { name = "beautifulsoup4", specifier = ">=4.13.4" },
+    { name = "duckdb", specifier = ">=1.1.1" },
     { name = "google-genai", specifier = ">=1.25.0" },
-    { name = "marimo", extras = ["recommended"], specifier = ">=0.14.10" },
+    { name = "marimo", extras = ["recommended", "sql"], specifier = ">=0.14.10" },
     { name = "pandas", specifier = ">=2.3.1" },
     { name = "plotly", specifier = ">=6.2.0" },
+    { name = "polars", specifier = ">=1.0.0" },
     { name = "vegafusion", specifier = ">=2.0.2" },
     { name = "vl-convert-python", specifier = ">=1.8.0" },
 ]

@@ -34,9 +34,9 @@ def current_data_overview(mo):
 
     # TEST: Add some prints and intentional errors
     print("🔍 Loading current data overview...")
-    print(f"📊 Debug: Processing environmental data")
+    print(f"📊 Debug: Processing environmental data - ITERATION TEST v8")
     
-    # Sample data for demonstration - TESTING REACTIVE UPDATES v6 - CHANGED!
+    # Sample data for demonstration - TESTING REACTIVE UPDATES v7 - TESTING EXPORT!
     sample_data = pd.DataFrame({
         'facility_type': ['Air Quality', 'Water', 'Hazardous Waste', 'Mixed'],
         'count': [150, 175, 85, 65],
