@@ -1,111 +1,67 @@
 # Marimo development workflow commands
 
-# Available notebooks for autocomplete
-_notebooks := "main.py gov_data.py account_rcra.py industry_benchmarking.py tmobile_campaign.py ryder_campaign.py front_modeling.py"
+# Available notebooks for autocomplete (auto-discovered .py files)
+_notebooks := `ls *.py 2>/dev/null | tr '\n' ' ' || echo ""`
 
-# Agent-namespaced notebook management
-# Usage: AGENT_NAME=system just set notebook.py
-# Usage: AGENT_NAME=system just current
+# Default command - show help and usage
+default:
+    @echo "🚀 Marimo Notebook Workflow"
+    @echo ""
+    @echo "Usage:"
+    @echo "  just launch <notebook.py>  - Start both edit and export for notebook"
+    @echo "  just run <notebook.py>     - Start edit server only"  
+    @echo "  just export <notebook.py>  - Start export watcher only"
+    @echo "  just kill <notebook.py>    - Kill processes for notebook"
+    @echo "  just status                - Show running processes"
+    @echo "  just kill-all              - Kill all marimo processes"
+    @echo ""
+    @echo "Available notebooks:"
+    @ls *.py 2>/dev/null | sed 's/^/  /' || echo "  No .py files found"
 
-# Set current notebook for agent
-set notebook:
-    #!/usr/bin/env bash
-    if [ -z "$AGENT_NAME" ]; then
-        echo "❌ AGENT_NAME not set. Usage: AGENT_NAME=system just set notebook.py"
-        exit 1
-    fi
-    echo "{{notebook}}" > ".current_notebook_$AGENT_NAME"
-    echo "📝 Set current notebook for $AGENT_NAME: {{notebook}}"
-
-# Get current notebook for agent or exit with error
-_get_notebook:
-    #!/usr/bin/env bash
-    if [ -z "$AGENT_NAME" ]; then
-        echo "❌ AGENT_NAME not set. Usage: AGENT_NAME=system just current" >&2
-        exit 1
-    fi
-    if [ -f ".current_notebook_$AGENT_NAME" ]; then
-        cat ".current_notebook_$AGENT_NAME"
-    else
-        echo "❌ No notebook set for $AGENT_NAME. Run: AGENT_NAME=$AGENT_NAME just set <notebook.py>" >&2
-        exit 1
-    fi
-
-# Show current notebook for agent
-current:
-    #!/usr/bin/env bash
-    if [ -z "$AGENT_NAME" ]; then
-        echo "❌ AGENT_NAME not set. Usage: AGENT_NAME=system just current"
-        exit 1
-    fi
-    if [ -f ".current_notebook_$AGENT_NAME" ]; then
-        notebook=$(cat ".current_notebook_$AGENT_NAME")
-        echo "📓 Current notebook for $AGENT_NAME: $notebook"
-    else
-        echo "❌ No notebook set for $AGENT_NAME."
-        echo "🔄 Run: AGENT_NAME=$AGENT_NAME just set <notebook.py>"
-        exit 1
-    fi
+# Launch both edit and export for a notebook
+launch notebook:
+    @echo "🚀 Launching {{notebook}} with both edit and export..."
+    @just run {{notebook}}
+    @just export {{notebook}}
 
 # Kill all marimo processes
 kill-all:
-    pkill -f marimo || echo "No marimo processes found"
+    #!/usr/bin/env bash
+    echo "🔍 Killing all marimo processes..."
+    if pkill -f marimo; then
+        echo "✅ All marimo processes terminated"
+    else
+        echo "❌ No marimo processes found"
+    fi
 
-# Kill specific notebook process
-kill-notebook notebook:
+# Kill specific notebook processes (both edit and export)
+kill notebook:
     #!/usr/bin/env bash
     echo "🔍 Looking for {{notebook}} processes..."
-    pids=$(ps aux | grep "[m]arimo edit {{notebook}}" | awk '{print $2}')
-    if [ -n "$pids" ]; then
-        echo "💀 Killing {{notebook}} processes: $pids"
-        echo "$pids" | xargs kill
+    # Kill both edit and export processes for this notebook
+    edit_pids=$(ps aux | grep "[m]arimo edit {{notebook}}" | awk '{print $2}')
+    export_pids=$(ps aux | grep "[m]arimo export ipynb {{notebook}}" | awk '{print $2}')
+    
+    killed=false
+    if [ -n "$edit_pids" ]; then
+        echo "💀 Killing {{notebook}} edit processes: $edit_pids"
+        echo "$edit_pids" | xargs kill
+        killed=true
+    fi
+    
+    if [ -n "$export_pids" ]; then
+        echo "💀 Killing {{notebook}} export processes: $export_pids"  
+        echo "$export_pids" | xargs kill
+        killed=true
+    fi
+    
+    if [ "$killed" = true ]; then
         echo "✅ {{notebook}} processes terminated"
     else
         echo "❌ No {{notebook}} processes found"
     fi
 
-# Kill current notebook (from .current_notebook)
-kill:
-    #!/usr/bin/env bash
-    notebook=$(just _get_notebook)
-    just kill-notebook "$notebook"
-
-# Show running marimo servers
-status:
-    #!/usr/bin/env bash
-    echo "🔍 Checking running marimo servers..."
-    ps aux | grep "[m]arimo edit" | while read line; do
-        pid=$(echo "$line" | awk '{print $2}')
-        port=$(echo "$line" | sed -n 's/.*--port \([0-9]*\).*/\1/p')
-        notebook=$(echo "$line" | sed -n 's/.*marimo edit \([^ ]*\).*/\1/p')
-        if [ -n "$port" ] && [ -n "$notebook" ]; then
-            echo "📊 $notebook on port $port (PID: $pid) - http://localhost:$port"
-        fi
-    done
-
-# Start editor server for notebook selection (background)
-serve port="2718":
-    #!/usr/bin/env bash
-    mkdir -p logs
-    echo "🚀 Starting marimo editor server on port {{port}}"
-    echo "📝 Logs: logs/marimo_editor.log"
-    nohup uv run marimo edit --port {{port}} > logs/marimo_editor.log 2>&1 &
-    sleep 2
-    echo "✅ Editor server started"
-    echo "🌐 URL: http://localhost:{{port}}"
-    echo "📋 Check logs: just editor-logs"
-
-# Start marimo server with file watching
-start port="8080":
-    #!/usr/bin/env bash
-    notebook=$(just _get_notebook)
-    mkdir -p logs
-    echo "🚀 Starting marimo server for $notebook on port {{port}}"
-    echo "📝 Logs: logs/marimo_server.log"
-    nohup uv run marimo edit "$notebook" --watch --port {{port}} > logs/marimo_server.log 2>&1 &
-    echo "✅ Server started, check logs: just logs"
-
-# Start any notebook on next available port
+# Start notebook on next available port with watch mode
 run notebook:
     #!/usr/bin/env bash
     port=8080
@@ -119,82 +75,44 @@ run notebook:
     nohup uv run marimo edit "{{notebook}}" --watch --port $port > "$logfile" 2>&1 &
     echo "✅ http://localhost:$port"
 
-# Export notebook to HTML (no timestamp)
-export:
+# Export notebook to IPYNB with watch mode (auto-export on changes)
+export notebook:
     #!/usr/bin/env bash
-    notebook=$(just _get_notebook)
+    notebook_base=$(basename "{{notebook}}" .py)
+    output_file="${notebook_base}.ipynb"
     mkdir -p logs
-    notebook_base=$(basename "$notebook" .py)
-    output_file="logs/${notebook_base}.html"
-    echo "📄 Exporting $notebook to ${output_file}"
-    if uv run marimo export html "$notebook" -o "${output_file}"; then
-        echo "✅ Exported to ${output_file}"
-    else
-        echo "❌ Export failed"
-    fi
+    logfile="logs/marimo_export_${notebook_base}.log"
+    echo "👁️  Watching {{notebook}} and auto-exporting to ${output_file}"
+    echo "📝 Logs: $logfile"
+    nohup uv run marimo export ipynb "{{notebook}}" -o "${output_file}" --watch > "$logfile" 2>&1 &
+    echo "✅ Export watcher started in background"
 
-# Check recent server logs
-logs:
+# Show running marimo processes (both edit and export)
+status:
     #!/usr/bin/env bash
-    if [ -f logs/marimo_server.log ]; then
-        echo "📋 Recent server logs:"
-        tail -10 logs/marimo_server.log
-    else
-        echo "❌ Log file not found: logs/marimo_server.log"
-    fi
-
-# Check editor server logs
-editor-logs:
-    #!/usr/bin/env bash
-    if [ -f logs/marimo_editor.log ]; then
-        echo "📋 Editor server logs:"
-        tail -10 logs/marimo_editor.log
-    else
-        echo "❌ Log file not found: logs/marimo_editor.log"
-    fi
-
-# Smart verification using Gemini AI
-verify:
-    #!/usr/bin/env bash
-    notebook=$(just _get_notebook)
-    notebook_base=$(basename "$notebook" .py)
-    export_file="logs/${notebook_base}.html"
-    
-    if [ ! -f "$export_file" ]; then
-        echo "❌ Export file not found: $export_file"
-        echo "💡 Run 'just export' first"
-        exit 1
-    fi
-    
-    echo "🔍 AI-powered verification of $export_file..."
-    cat "$export_file" | gemini -p "Analyze this marimo notebook export for quality and completeness. Focus on: Data Quality (errors, warnings, failed computations), Analysis Completeness (insights present/missing), Visualization Quality (chart effectiveness), Code Quality (logic/approach issues), and Next Steps (improvement suggestions). Be concise but thorough. Use emojis for readability." -m "gemini-2.5-flash"
-
-# Detailed verification using Gemini Pro
-verify-pro:
-    #!/usr/bin/env bash
-    notebook=$(just _get_notebook)
-    notebook_base=$(basename "$notebook" .py)
-    export_file="logs/${notebook_base}.html"
-    
-    if [ ! -f "$export_file" ]; then
-        echo "❌ Export file not found: $export_file"
-        echo "💡 Run 'just export' first"
-        exit 1
-    fi
-    
-    echo "🔍 Detailed AI verification using Gemini Pro..."
-    cat "$export_file" | gemini -p "As an expert data scientist and code reviewer, provide a comprehensive analysis of this marimo notebook. Evaluate: 1) Technical accuracy and data integrity, 2) Statistical validity of conclusions, 3) Code quality and best practices, 4) Visual design effectiveness, 5) Missing analytical depth, 6) Specific actionable recommendations for improvement. Include concrete suggestions for next development steps." -m "gemini-2.5-pro"
-
-# Full development cycle: current → status → export → verify
-loop:
-    #!/usr/bin/env bash
-    notebook=$(just _get_notebook)
-    echo "🔄 Running development loop for $notebook"
-    echo "=" | tr '=' '=' | head -c 50; echo
-    just current
-    just status
-    just export
-    just verify
+    echo "🔍 Running marimo processes:"
+    echo
+    echo "📊 Edit servers:"
+    ps aux | grep "[m]arimo edit" | while read line; do
+        pid=$(echo "$line" | awk '{print $2}')
+        port=$(echo "$line" | sed -n 's/.*--port \([0-9]*\).*/\1/p')
+        notebook=$(echo "$line" | sed -n 's/.*marimo edit \([^ ]*\).*/\1/p')
+        if [ -n "$port" ] && [ -n "$notebook" ]; then
+            echo "  📝 $notebook on port $port (PID: $pid) - http://localhost:$port"
+        fi
+    done
+    echo
+    echo "👁️  Export watchers:"
+    ps aux | grep "[m]arimo export" | while read line; do
+        pid=$(echo "$line" | awk '{print $2}')
+        # Extract notebook name from the command line
+        notebook=$(echo "$line" | sed -n 's/.*marimo export ipynb \([^[:space:]]*\) -o.*/\1/p')
+        if [ -n "$notebook" ]; then
+            echo "  📤 $notebook (PID: $pid)"
+        else
+            echo "  📤 unknown notebook (PID: $pid)"
+        fi
+    done
 
 # Sync dependencies and install missing packages
 sync:

@@ -64,7 +64,15 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(AGENT_NAME=system just set genesis_chemical_investigation.py)",
-      "Bash(AGENT_NAME=system just run)"
+      "Bash(AGENT_NAME=system just run)",
+      "Bash(git push:*)",
+      "Bash(AGENT_NAME=system just set gong_calls_analysis.py)",
+      "Bash(docs gong:*)",
+      "Bash(AGENT_NAME=system just kill)",
+      "Bash(source:*)",
+      "Bash(docs marimo 'how does auto export work and how can I configure the frequency of automatic exports to HTML and IPYNB?')",
+      "Bash(docs ls)",
+      "Bash(docs:*)"
     ],
     "deny": []
   }
